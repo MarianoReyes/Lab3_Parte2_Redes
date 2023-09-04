@@ -28,7 +28,8 @@ while opcion != "4":
         password = input('Contraseña: ')
 
         # Obtener el nombre de usuario (node_name) del JID (por ejemplo, "usuario@servidor.com" se convierte en "usuario")
-        node_name = jid.split('@')[0]
+        node = jid.split('@')[0]
+        node_name = node.split("_")[0].upper()
 
         # Crear una instancia de DistanceVector con el node_name obtenido
         distance_vector = DistanceVector(node_name)

@@ -256,7 +256,7 @@ class Cliente(slixmpp.ClientXMPP):
                     weight)
 
     async def mostrar_detalles_vecinos(self, distance_vector):
-        vecinos = distance_vector.neighbor_costs.keys()
+        vecinos = distance_vector.neighbor_costs
 
         if vecinos:
             print("Vecinos:")
