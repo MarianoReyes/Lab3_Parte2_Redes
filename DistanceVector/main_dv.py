@@ -31,8 +31,10 @@ while opcion != "4":
         node = jid.split('@')[0]
         node_name = node.split("_")[0].upper()
 
+        node_weight = 1
+
         # Crear una instancia de DistanceVector con el node_name obtenido
-        distance_vector = DistanceVector(node_name)
+        distance_vector = DistanceVector(node_name, node_weight)
         distance_vector.load_neighbor_costs_from_file(
             'topo_DistanceVector.json')
 

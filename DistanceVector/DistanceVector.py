@@ -2,8 +2,9 @@ import json
 
 
 class DistanceVector:
-    def __init__(self, node_name=None):
+    def __init__(self, node_name=None, node_weight=None):
         self.node_name = node_name
+        self.node_weight = node_weight
         self.routing_table = {}
         self.neighbor_costs = {}
         self.next_hops = {}

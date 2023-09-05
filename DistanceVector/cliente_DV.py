@@ -32,7 +32,7 @@ def register(client, password):
 
 
 class Cliente(slixmpp.ClientXMPP):
-    def __init__(self, jid, password, distance_vector=None):
+    def __init__(self, jid, password, distance_vector):
 
         super().__init__(jid, password)
         self.distance_vector = distance_vector
@@ -56,7 +56,6 @@ class Cliente(slixmpp.ClientXMPP):
         self.add_event_handler('subscription_request',
                                self.handler_presencia)
         self.add_event_handler('message', self.chat)
-        self.add_event_handler('roster_update', self.handle_roster_update)
 
     # FUNCIONES DE CONTACTOS Y CHATS
 
@@ -96,42 +95,14 @@ class Cliente(slixmpp.ClientXMPP):
             # solo user
             user = str(message['from']).split('@')[0]
 
-            # recibir archivos
-            if message['body'].startswith("file://"):
-                # info del archivo
-                file_info = message['body'][7:].split("://")
-                extension = file_info[0]
-                # contenido
-                encoded_data = file_info[1]
+            # si el mensaje es con el que chatea
+            if user == self.actual_chat.split('@')[0]:
+                print_azul(f'{user}: {message["body"]}')
 
-                try:
-                    # decodificar archivo de base64
-                    decoded_data = base64.b64decode(encoded_data)
-
-                    file_path = f"archivos_recibidos/archivo_nuevo.{extension}"
-
-                    # Use asyncio.sleep(0) to yield control to the event loop
-                    await asyncio.sleep(0)
-
-                    with open(file_path, "wb") as file:
-                        file.write(decoded_data)
-
-                    self.mostrar_notificacion(
-                        f"Archivo recibido y guardado .{extension} de {user}")
-
-                except Exception as e:
-                    print("\nError al recibir archivo:", e)
-
-            # mensajes
+            # notificacion si es otro
             else:
-                # si el mensaje es con el que chatea
-                if user == self.actual_chat.split('@')[0]:
-                    print_azul(f'{user}: {message["body"]}')
-
-                # notificacion si es otro
-                else:
-                    self.mostrar_notificacion(
-                        f"Tienes un nuevo mensaje de {user}")
+                self.mostrar_notificacion(
+                    f"Tienes un nuevo mensaje de {user}")
 
     # funcion generada por chat gpt para imprimir con colores
     def mostrar_notificacion(self, mensaje):
@@ -237,24 +208,6 @@ class Cliente(slixmpp.ClientXMPP):
         print(f"Mensaje de estado/status: {status}")
         print("")
 
-    async def handle_roster_update(self, roster_update):
-        # Maneja eventos de actualización del roster (cuando se agrega un contacto)
-        # Actualiza los vecinos en la instancia de DistanceVector
-        for jid in roster_update['added']:
-            if jid.bare != self.boundjid.bare:
-                # Supongamos que el nombre del vecino es el nodo del JID
-                neighbor_node = jid.bare.split('@')[0]
-
-                true_neighbor_node = neighbor_node.split("_")[0]
-
-                # Solicita al usuario el peso específico para el vecino
-                weight = input(
-                    f"Ingrese el peso para el vecino {true_neighbor_node}: ")
-
-                # Almacena el vecino y su peso en neighbor_costs del DistanceVector
-                self.distance_vector.neighbor_costs[true_neighbor_node] = int(
-                    weight)
-
     async def mostrar_detalles_vecinos(self, distance_vector):
         vecinos = distance_vector.neighbor_costs
 
@@ -266,7 +219,8 @@ class Cliente(slixmpp.ClientXMPP):
         else:
             print("No hay vecinos disponibles.")
 
-    async def enviar_mensaje_contacto(self):
+    async def enviar_mensaje_contacto(self):  # enviar mensaje a algun contacto
+
         jid = await ainput('Ingrasa el JID del usuario\n')
         self.actual_chat = jid
         await aprint('\nPresiona x y luego enter para salir\n')
@@ -277,10 +231,7 @@ class Cliente(slixmpp.ClientXMPP):
                 chatting = False
                 self.actual_chat = ''
             else:
-                # Enviar mensaje al algoritmo Distance Vector
-                emisor = self.name
-                receptor = jid.split('@')[0]
-                self.distance_vector.receive_message(emisor, receptor, message)
+                self.send_message(mto=jid, mbody=message, mtype='chat')
 
     # FUNCION QUE CORRE TODO
 
@@ -310,7 +261,7 @@ class Cliente(slixmpp.ClientXMPP):
                 menus.user_menu()  # menu de cliente
                 opcion = await ainput("\n>> ")
 
-                # todos los contactos con estado
+                # todos los contactios con estado
                 if opcion == "1":
                     await self.mostrar_status_contacto()
 
@@ -318,7 +269,7 @@ class Cliente(slixmpp.ClientXMPP):
                 elif opcion == "2":
                     await self.anadir_contacto()
 
-                # detalles de los vecinos
+                # detalles de un usuario
                 elif opcion == "3":
                     await self.mostrar_detalles_vecinos(self.distance_vector)
 

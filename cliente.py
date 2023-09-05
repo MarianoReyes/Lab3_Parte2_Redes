@@ -94,42 +94,14 @@ class Cliente(slixmpp.ClientXMPP):
             # solo user
             user = str(message['from']).split('@')[0]
 
-            # recibir archivos
-            if message['body'].startswith("file://"):
-                # info del archivo
-                file_info = message['body'][7:].split("://")
-                extension = file_info[0]
-                # contenido
-                encoded_data = file_info[1]
+            # si el mensaje es con el que chatea
+            if user == self.actual_chat.split('@')[0]:
+                print_azul(f'{user}: {message["body"]}')
 
-                try:
-                    # decodificar archivo de base64
-                    decoded_data = base64.b64decode(encoded_data)
-
-                    file_path = f"archivos_recibidos/archivo_nuevo.{extension}"
-
-                    # Use asyncio.sleep(0) to yield control to the event loop
-                    await asyncio.sleep(0)
-
-                    with open(file_path, "wb") as file:
-                        file.write(decoded_data)
-
-                    self.mostrar_notificacion(
-                        f"Archivo recibido y guardado .{extension} de {user}")
-
-                except Exception as e:
-                    print("\nError al recibir archivo:", e)
-
-            # mensajes
+            # notificacion si es otro
             else:
-                # si el mensaje es con el que chatea
-                if user == self.actual_chat.split('@')[0]:
-                    print_azul(f'{user}: {message["body"]}')
-
-                # notificacion si es otro
-                else:
-                    self.mostrar_notificacion(
-                        f"Tienes un nuevo mensaje de {user}")
+                self.mostrar_notificacion(
+                    f"Tienes un nuevo mensaje de {user}")
 
     # funcion generada por chat gpt para imprimir con colores
     def mostrar_notificacion(self, mensaje):
