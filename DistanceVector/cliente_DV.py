@@ -95,19 +95,54 @@ class Cliente(slixmpp.ClientXMPP):
             # solo user
             user = str(message['from']).split('@')[0]
 
-            # si el mensaje es con el que chatea
-            if user == self.actual_chat.split('@')[0]:
-                print_azul(f'{user}: {message["body"]}')
+            node = user.split("_")[0].upper()
 
-            # notificacion si es otro
-            else:
-                self.mostrar_notificacion(
-                    f"Tienes un nuevo mensaje de {user}")
+            mensaje = message["body"]
+
+            try:
+                neighbors = mensaje.split(':')[1].split(',')
+
+                # si el mensaje es con el que chatea
+                if user == self.actual_chat.split('@')[0]:
+                    print_azul(f'{user}: {message["body"]}')
+                    self.distance_vector.update(neighbors)
+                    print(self.distance_vector.routing_table)
+
+                # notificacion si es otro
+                else:
+                    self.distance_vector.update(neighbors)
+                    self.mostrar_notificacion(
+                        f"Tienes una comunicación de {node}>> {mensaje}")
+                    print(self.distance_vector.routing_table)
+            except:
+                # si el mensaje es con el que chatea
+                if user == self.actual_chat.split('@')[0]:
+                    print_azul(f'{user}: {message["body"]}')
+                # notificacion si es otro
+                else:
+                    self.mostrar_notificacion(
+                        f"Tienes una comunicación de {node}>> {mensaje}")
 
     # funcion generada por chat gpt para imprimir con colores
     def mostrar_notificacion(self, mensaje):
         print_rojo(mensaje)
         print("v")
+
+    async def enviar_mensaje_broadcast(client, message_body):
+        try:
+            # Get the roster (list of contacts)
+            roster = client.client_roster
+
+            for jid in roster.keys():
+                # Check if the contact JID is not the same as your own JID
+                if jid != client.boundjid.bare:
+                    # Send the message to the contact
+                    client.send_message(
+                        mto=jid, mbody=message_body, mtype='chat')
+
+            print("Message sent to all contacts except yourself.")
+        except Exception as e:
+            print("Error sending message:", e)
 
     def mostrar_presencia(self, presence, is_available):
 
@@ -281,6 +316,12 @@ class Cliente(slixmpp.ClientXMPP):
                 elif opcion == "5":
                     self.disconnect()
                     self.is_connected = False
+
+                # mensaje para todos
+                elif opcion == "6":
+                    mensaje = str(self.distance_vector.node_name) + ":" + \
+                        ",".join(self.distance_vector.neighbor_costs.keys())
+                    await self.enviar_mensaje_broadcast(mensaje)
 
                 else:
                     print("\nOpción NO válida, ingrese de nuevo porfavor.")
