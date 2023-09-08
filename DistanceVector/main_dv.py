@@ -36,17 +36,17 @@ while opcion != "4":
         # Crear una instancia de DistanceVector con el node_name obtenido
         distance_vector = DistanceVector(node_name, node_weight)
 
-        neighbors = list((input(
-            "\nIngrese a los vecinos de este nodo separado por comas:\n>> ")).split(","))
+        # neighbors = list((input(
+        #     "\nIngrese a los vecinos de este nodo separado por comas:\n>> ")).split(","))
 
-        for neighbor in neighbors:
-            distance_vector.routing_table[neighbor] = float(
-                'inf')  # Set to infinity initially
-            distance_vector.next_hops[neighbor] = None
+        # for neighbor in neighbors:
+        #     distance_vector.routing_table[neighbor] = float(
+        #         'inf')  # Set to infinity initially
+        #     distance_vector.next_hops[neighbor] = None
 
-        distance_vector.set_neighbor_costs(neighbors)
+        # distance_vector.set_neighbor_costs(neighbors)
 
-        distance_vector.update(neighbors)
+        # distance_vector.update(neighbors)
 
         # Pasa la instancia del algoritmo Distance Vector
         client = Cliente(jid, password, distance_vector)

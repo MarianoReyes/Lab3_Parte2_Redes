@@ -5,16 +5,16 @@ from slixmpp.xmlstream.stanzabase import ET
 from aioconsole import ainput
 from aioconsole.stream import aprint
 import asyncio
-from asyncio import Future # noqa
-from typing import Optional, Union # noqa
-import tkinter as tk # noqa
-from tkinter import messagebox # noqa
+from asyncio import Future  # noqa
+from typing import Optional, Union  # noqa
+import tkinter as tk  # noqa
+from tkinter import messagebox  # noqa
 import menus
-from slixmpp import Message # noqa
-import base64 # noqa
-import math # noqa
-import os # noqa
-from utils import * # noqa
+from slixmpp import Message  # noqa
+import base64  # noqa
+import math  # noqa
+import os  # noqa
+from utils import *  # noqa
 
 # implementacion modifica de registro simple extraido de repositorio https://github.com/xmpppy/xmpppy
 
@@ -183,6 +183,18 @@ class Cliente(slixmpp.ClientXMPP):
         except IqTimeout:
             print("Sin respuesta del servidor.")
 
+    async def eliminar_contacto(self):
+        try:
+            jid_to_remove = input(
+                "Ingresa el JID del contacto que deseas eliminar: ")
+            await self.del_roster_item(jid_to_remove)
+            print(
+                f"El contacto {jid_to_remove} ha sido eliminado de tu lista de contactos.")
+        except IqError as e:
+            print(f"Error al eliminar el contacto: {e.iq['error']['text']}")
+        except IqTimeout:
+            print("No se recibió respuesta del servidor.")
+
     async def mostrar_status_contacto(self):  # mostrar status de los contactos
         # Extract roster items and their presence status
         roster = self.client_roster
@@ -304,21 +316,25 @@ class Cliente(slixmpp.ClientXMPP):
                 elif opcion == "2":
                     await self.anadir_contacto()
 
-                # detalles de un usuario
+                # agregar un nuevo usuario
                 elif opcion == "3":
+                    await self.eliminar_contacto()
+
+                # detalles de un usuario
+                elif opcion == "4":
                     await self.mostrar_detalles_vecinos(self.distance_vector)
 
                 # chatear con usuario
-                elif opcion == "4":
+                elif opcion == "5":
                     await self.enviar_mensaje_contacto()
 
                 # cerrar sesion
-                elif opcion == "5":
+                elif opcion == "6":
                     self.disconnect()
                     self.is_connected = False
 
                 # mensaje para todos
-                elif opcion == "6":
+                elif opcion == "7":
                     mensaje = str(self.distance_vector.node_name) + ":" + \
                         ",".join(self.distance_vector.neighbor_costs.keys())
                     await self.enviar_mensaje_broadcast(mensaje)
