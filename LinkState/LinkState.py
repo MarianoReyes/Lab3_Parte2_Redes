@@ -5,12 +5,12 @@ class Link_State():
     def __init__(self, nombre, roster):
         self.nombre = nombre
 
-        self.vecinos_pesos = [(v, 1) for v in roster["misvecinos"]]
+        self.vecinos_pesos = [(v, 1) for v in roster[self.nombre]]
         print(f"Estos son los vecinos de {self.nombre}: ", self.vecinos_pesos)
         
         self.topologia = {self.nombre: self.vecinos_pesos}
         for vecino, vecinos_vecino in roster.items():
-            if vecino != "misvecinos":
+            if vecino != self.nombre:
                 vecinos_con_pesos = [(v, 1) for v in vecinos_vecino]
                 self.topologia[vecino] = vecinos_con_pesos
         self.dijkstra()
@@ -66,23 +66,23 @@ class Link_State():
             return next
 
     def sincronizar_roster(self, roster):
-        self.vecinos_pesos = [(vecino, 1) for vecino in roster["misvecinos"]]
+        self.vecinos_pesos = [(vecino, 1) for vecino in roster[self.nombre]]
         self.topologia[self.nombre] = self.vecinos_pesos
         
         for vecino, vecinos_vecino in roster.items():
-            if vecino != "misvecinos":
+            if vecino != self.nombre:
                 vecinos_con_pesos = [(v, 1) for v in vecinos_vecino]
                 self.topologia[vecino] = vecinos_con_pesos
         self.dijkstra()
 
 
 # if __name__ == "__main__":
-#     nuevoLink = Link_State("A", {"misvecinos": ["B"]})
+#     nuevoLink = Link_State("A", {self.nombre: ["B"]})
 #     vecinosB = ["C"]
 #     vecinosC = ["A"]
 #     print(nuevoLink.tabla_enrutamiento)
 #     nuevoLink.sincronizar_roster(
-#       {"misvecinos": vecinosB, "B": vecinosB, "C": vecinosC})
+#       {self.nombre: vecinosB, "B": vecinosB, "C": vecinosC})
 
 #     print(nuevoLink.siguiente_nodo("B"))
 #     print(nuevoLink.siguiente_nodo("C"))

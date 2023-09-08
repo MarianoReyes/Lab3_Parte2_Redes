@@ -28,7 +28,7 @@ class Cliente(slixmpp.ClientXMPP):
         super().__init__(jid, password)
         
         self.name = jid.split('@')[0]
-        self.link_state = Link_State(self.name, {'misvecinos': []})
+        self.link_state = Link_State(self.name, {self.name: []})
         self.is_connected = False
         self.actual_chat = ''
         self.client_queue = asyncio.Queue()
@@ -93,6 +93,21 @@ class Cliente(slixmpp.ClientXMPP):
             node = user.split("_")[0].upper()
 
             mensaje = message["body"]
+
+            if mensaje == "SOLICITUD_TOPOLOGIA":
+                # hacer requestd e la topologia de los vecinos
+                vecinos = ",".join(self.link_state.roster[self.name])
+                self.send_message(mto=message['from'].bare,
+                                  mbody=f"RESPUESTA_TOPOLOGIA:{vecinos}",
+                                  mtype='chat')
+                await self.descubrir_topologia()
+        
+            elif mensaje.startswith("RESPUESTA_TOPOLOGIA:"):
+                # Aquí almacenarías la información recibida
+                # para construir la topología
+                data = mensaje.split(":")[1]
+                vecinos = data.split(",")
+                # enviar a mis vecinos que no sean el que me envio
 
             try:
                 neighbors = mensaje.split(':')[1].split(',')
@@ -268,19 +283,25 @@ class Cliente(slixmpp.ClientXMPP):
             else:
                 self.send_message(mto=jid, mbody=message, mtype='chat')
 
+    async def descubrir_topologia(self):
+        for vecino in self.link_state.roster[self.name]:
+            self.send_message(mto=vecino,
+                              mbody="SOLICITUD_TOPOLOGIA", mtype='chat')
+ 
     # FUNCION QUE CORRE TODO
 
     async def start(self, event):
         try:
             self.send_presence()
             await self.get_roster()
-            print("Roster: ", self.client_roster)
+
             myRoster = list(self.client_roster.keys())
-            print("Mis contactos: ", {"misvecinos": myRoster})
-            self.link_state.sincronizar_roster({"misvecinos": myRoster})
+
+            self.link_state.sincronizar_roster({self.name: myRoster})
+
             self.is_connected = True
             print('Logged in')
-
+            await self.descubrir_topologia()
             asyncio.create_task(self.instancia_usuario())
 
         # errores en log in
