@@ -3,9 +3,14 @@ import heapq
 class Link_State():
     def __init__(self, nombre, roster):
         self.nombre = nombre
-        self.vecinos_pesos = [(vecino, 1) for vecino in roster]
+        self.vecinos_pesos = [(vecino, 1) for vecino in roster["misvecinos"]]
         print(f"Estos son los vecinos de {self.nombre}: ", self.vecinos_pesos)
+        
         self.topologia = {self.nombre: self.vecinos_pesos}
+        for vecino, vecinos_vecino in roster.items():
+            if vecino != "misvecinos":
+                vecinos_con_pesos = [(v, 1) for v in vecinos_vecino]
+                self.topologia[vecino] = vecinos_con_pesos
         self.dijkstra()
 
     def dijkstra(self):
@@ -21,9 +26,9 @@ class Link_State():
             if current_dist > self.distancias[u]:
                 continue
 
-            for v, peso in self.topologia[u]:
+            for v, peso in self.topologia.get(u, []):
                 alt = self.distancias[u] + peso
-                if alt < self.distancias[v]:
+                if alt < self.distancias.get(v, float("inf")):
                     self.distancias[v] = alt
                     self.anterior[v] = u
                     heapq.heappush(self.fila, (alt, v))
@@ -50,14 +55,32 @@ class Link_State():
     def recibir_mensaje(self, emisor, receptor, mensaje):
         if self.nombre == receptor:
             print("Mensaje recibido: ", mensaje)
+            return None
         else:
             print("De: ", emisor)
             print("Manda:", mensaje)
-            print("El siguiente nodo en el camino es:", self.siguiente_nodo(receptor))
+            next = self.siguiente_nodo(receptor)
+            print("El siguiente nodo en el camino es:", next)
+            return next
 
     def sincronizar_roster(self, roster):
-        # Aquí debes agregar la lógica para sincronizar con el roster actualizado.
-        # Por ahora solo actualiza la lista de vecinos y pesos.
-        self.vecinos_pesos = [(vecino, 1) for vecino in roster]
+        self.vecinos_pesos = [(vecino, 1) for vecino in roster["misvecinos"]]
         self.topologia[self.nombre] = self.vecinos_pesos
+        
+        for vecino, vecinos_vecino in roster.items():
+            if vecino != "misvecinos":
+                vecinos_con_pesos = [(v, 1) for v in vecinos_vecino]
+                self.topologia[vecino] = vecinos_con_pesos
         self.dijkstra()
+
+
+if __name__ == "__main__":
+    nuevoLink = Link_State("A", {"misvecinos": ["B"]})
+    vecinosB = ["C"]
+    vecinosC = ["A"]
+    print(nuevoLink.tabla_enrutamiento)
+    nuevoLink.sincronizar_roster({"misvecinos": vecinosB, "B": vecinosB, "C": vecinosC})
+
+    print(nuevoLink.siguiente_nodo("B"))
+    print(nuevoLink.siguiente_nodo("C"))
+    print(nuevoLink.recibir_mensaje("A", "C", "Hola"))
