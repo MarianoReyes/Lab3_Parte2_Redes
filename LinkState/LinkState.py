@@ -1,9 +1,11 @@
 import heapq
 
+
 class Link_State():
     def __init__(self, nombre, roster):
         self.nombre = nombre
-        self.vecinos_pesos = [(vecino, 1) for vecino in roster["misvecinos"]]
+
+        self.vecinos_pesos = [(v, 1) for v in roster["misvecinos"]]
         print(f"Estos son los vecinos de {self.nombre}: ", self.vecinos_pesos)
         
         self.topologia = {self.nombre: self.vecinos_pesos}
@@ -74,13 +76,14 @@ class Link_State():
         self.dijkstra()
 
 
-if __name__ == "__main__":
-    nuevoLink = Link_State("A", {"misvecinos": ["B"]})
-    vecinosB = ["C"]
-    vecinosC = ["A"]
-    print(nuevoLink.tabla_enrutamiento)
-    nuevoLink.sincronizar_roster({"misvecinos": vecinosB, "B": vecinosB, "C": vecinosC})
+# if __name__ == "__main__":
+#     nuevoLink = Link_State("A", {"misvecinos": ["B"]})
+#     vecinosB = ["C"]
+#     vecinosC = ["A"]
+#     print(nuevoLink.tabla_enrutamiento)
+#     nuevoLink.sincronizar_roster(
+#       {"misvecinos": vecinosB, "B": vecinosB, "C": vecinosC})
 
-    print(nuevoLink.siguiente_nodo("B"))
-    print(nuevoLink.siguiente_nodo("C"))
-    print(nuevoLink.recibir_mensaje("A", "C", "Hola"))
+#     print(nuevoLink.siguiente_nodo("B"))
+#     print(nuevoLink.siguiente_nodo("C"))
+#     print(nuevoLink.recibir_mensaje("A", "C", "Hola"))

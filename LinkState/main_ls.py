@@ -1,7 +1,6 @@
 import asyncio
-from cliente_DV import Cliente, Borrar_Cliente
-import cliente_DV
-from DistanceVector import DistanceVector  # Importa la clase DistanceVector
+from cliente_LS import Cliente, Borrar_Cliente
+import cliente_LS
 import menus
 
 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -17,7 +16,7 @@ while opcion != "4":
         jid = input('Usuario: ')
         password = input('Contraseña: ')
 
-        if cliente_DV.register(jid, password):
+        if cliente_LS.register(jid, password):
             print("Registro completado de manera correcta")
         else:
             print("Registro NO completado")
@@ -32,26 +31,8 @@ while opcion != "4":
         node = jid.split('@')[0]
         node_name = node.split("_")[0].upper()
 
-        node_weight = 1
-
-        # Crear una instancia de DistanceVector con el node_name obtenido
-        distance_vector = DistanceVector(node_name, node_weight)
-
-        # Los neighbors deberian ser los del rouster del usuario
-        neighbors = list((input(
-            "\nIngrese a los vecinos de este nodo separado por comas:\n>> ")).split(","))
-
-        for neighbor in neighbors:
-            distance_vector.routing_table[neighbor] = float(
-                'inf')  # Set to infinity initially
-            distance_vector.next_hops[neighbor] = None
-
-        distance_vector.set_neighbor_costs(neighbors)
-
-        distance_vector.update(neighbors)
-
         # Pasa la instancia del algoritmo Distance Vector
-        client = Cliente(jid, password, distance_vector)
+        client = Cliente(jid, password)
         client.connect(disable_starttls=True)
         client.process(forever=False)
 

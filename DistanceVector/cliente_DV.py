@@ -5,16 +5,16 @@ from slixmpp.xmlstream.stanzabase import ET
 from aioconsole import ainput
 from aioconsole.stream import aprint
 import asyncio
-from asyncio import Future
-from typing import Optional, Union
-import tkinter as tk
-from tkinter import messagebox
+from asyncio import Future # noqa
+from typing import Optional, Union # noqa
+import tkinter as tk # noqa
+from tkinter import messagebox # noqa
 import menus
-from slixmpp import Message
-import base64
-import math
-import os
-from utils import *
+from slixmpp import Message # noqa
+import base64 # noqa
+import math # noqa
+import os # noqa
+from utils import * # noqa
 
 # implementacion modifica de registro simple extraido de repositorio https://github.com/xmpppy/xmpppy
 
