@@ -14,6 +14,7 @@ from slixmpp import Message  # noqa
 import base64  # noqa
 import math  # noqa
 import os  # noqa
+import re
 from utils import *  # noqa
 
 # implementacion modifica de registro simple extraido de repositorio https://github.com/xmpppy/xmpppy
@@ -225,35 +226,29 @@ class Cliente(slixmpp.ClientXMPP):
         for c in contact_list:
             print(f"Contacto: {c[0]}")
             print(f"Estado: {c[1]}")
-            print(f"Mensaje de estado: {c[2]}")
+            #print(f"Mensaje de estado: {c[2]}")
             print("")
         print("")
 
-    async def mostrar_detalles_contacto(self):  # mostrar detalles del contacto
-        jid_to_find = input(
-            "Ingresa el JID del usuario/contacto que deseas buscar: ")
-        roster = self.client_roster
-        contacts = roster._jids.keys()
+    async def add_neighbors(self):
+        try:
+            roster = self.client_roster
 
-        if jid_to_find not in contacts:
-            print("El usuario/contacto no se encuentra en la lista de contactos.")
-            return
+            for jid in roster.keys():
+                # Check if the contact JID matches the pattern 'x_g9@alumchat.xyz'
+                if re.match(r'^[a-zA-Z0-9]+_g9@alumchat\.xyz$', jid):
+                    # Extract the 'x' value by splitting on '_' and taking the first part
+                    node_name = jid.split('_')[0]
 
-        # Obtener presencia del contacto
-        connection = roster.presence(jid_to_find)
-        show = 'available'
-        status = ''
+                    node = jid.split('@')[0]
 
-        for answer, presence in connection.items():
-            if presence['show']:
-                show = presence['show']
-            if presence['status']:
-                status = presence['status']
+                    if node != self.name:
+                        # Add the 'x' value to the neighbor_costs dictionary with a value of 1
+                        self.distance_vector.neighbor_costs[node_name] = 1
 
-        print("\nDetalles del contacto:")
-        print(f"Usuario: {jid_to_find}")
-        print(f"Mensaje de estado/status: {status}")
-        print("")
+            print("Vecinos linkeados.")
+        except Exception as e:
+            print("Error al linkear con vecinos:", e)
 
     async def mostrar_detalles_vecinos(self, distance_vector):
         vecinos = distance_vector.neighbor_costs
@@ -303,8 +298,8 @@ class Cliente(slixmpp.ClientXMPP):
 
     async def instancia_usuario(self):  # funcion para menu de user
         try:
+            await self.add_neighbors()
             while self.is_connected:
-
                 menus.user_menu()  # menu de cliente
                 opcion = await ainput("\n>> ")
 
