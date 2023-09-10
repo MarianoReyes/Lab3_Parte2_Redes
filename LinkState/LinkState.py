@@ -1,7 +1,7 @@
 import heapq
 
 
-class Link_State():
+class LinkState():
     def __init__(self, nombre, roster):
         self.nombre = nombre
 

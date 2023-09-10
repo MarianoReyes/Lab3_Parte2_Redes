@@ -1,11 +1,12 @@
 import menus
+import json
 import xmpp
 import slixmpp
 import asyncio
 from aioconsole import ainput
 from aioconsole.stream import aprint
 from utils import print_azul, print_rojo
-from LinkState import Link_State
+from LinkState import LinkState
 from slixmpp.xmlstream.stanzabase import ET
 from slixmpp.exceptions import IqError, IqTimeout
 
@@ -28,7 +29,7 @@ class Cliente(slixmpp.ClientXMPP):
         super().__init__(jid, password)
         
         self.name = jid.split('@')[0]
-        self.link_state = Link_State(self.name, {self.name: []})
+        self.linkstate = LinkState(self.name, {self.name: []})
         self.is_connected = False
         self.actual_chat = ''
         self.client_queue = asyncio.Queue()
@@ -89,25 +90,48 @@ class Cliente(slixmpp.ClientXMPP):
         if message['type'] == 'chat':
             # solo user
             user = str(message['from']).split('@')[0]
-
             node = user.split("_")[0].upper()
-
             mensaje = message["body"]
 
-            if mensaje == "SOLICITUD_TOPOLOGIA":
-                # hacer requestd e la topologia de los vecinos
-                vecinos = ",".join(self.link_state.roster[self.name])
-                self.send_message(mto=message['from'].bare,
-                                  mbody=f"RESPUESTA_TOPOLOGIA:{vecinos}",
-                                  mtype='chat')
-                await self.descubrir_topologia()
-        
-            elif mensaje.startswith("RESPUESTA_TOPOLOGIA:"):
-                # Aquí almacenarías la información recibida
-                # para construir la topología
-                data = mensaje.split(":")[1]
-                vecinos = data.split(",")
-                # enviar a mis vecinos que no sean el que me envio
+            if mensaje.startswith("SOLICITUD_TOPOLOGIA:"):
+                # Deserializar el JSON recibido para obtener
+                # el diccionario de topología del vecino
+                topologia_vecino = json.loads(
+                    mensaje[len("SOLICITUD_TOPOLOGIA:"):])
+                
+                # Unir la topología recibida con la topología actual
+                mi_topologia = self.linkstate.topologia
+                
+                # Crear una copia profunda de la topología actual
+                # para comparar después del merge
+                mi_topologia_original = json.dumps(mi_topologia)
+                
+                for nodo, vecinos in topologia_vecino.items():
+                    if nodo not in mi_topologia:
+                        mi_topologia[nodo] = vecinos
+                    else:
+                        for vecino in vecinos:
+                            if vecino not in mi_topologia[nodo]:
+                                mi_topologia[nodo].append(vecino)
+                
+                # Verificar si hubo algún cambio
+                if json.dumps(mi_topologia) != mi_topologia_original:
+                    # Si hubo cambios, enviar la topología actualizada
+                    self.linkstate.sincronizar_roster(mi_topologia)
+                    # a todos los vecinos
+                    await self.descubrir_topologia()
+
+            elif mensaje.startswith("RESPUESTA_TOPOLOGIA"):
+                # Aquí puedes manejar las respuestas a
+                # tus solicitudes de topología
+                topologia_recibida = json.loads(
+                    mensaje[len("RESPUESTA_TOPOLOGIA:"):])
+
+                # Compara y actualiza tu topología si es necesario,
+                # similar al caso anterior
+                if topologia_recibida != self.linkstate.topologia:
+                    self.linkstate.topologia.update(topologia_recibida)
+                    await self.descubrir_topologia()
 
             try:
                 neighbors = mensaje.split(':')[1].split(',')
@@ -284,9 +308,12 @@ class Cliente(slixmpp.ClientXMPP):
                 self.send_message(mto=jid, mbody=message, mtype='chat')
 
     async def descubrir_topologia(self):
-        for vecino in self.link_state.roster[self.name]:
+        mi_topologia = self.linkstate.topologia
+        string_json = json.dumps(mi_topologia)
+        for vecino in self.linkstate.roster[self.name]:
             self.send_message(mto=vecino,
-                              mbody="SOLICITUD_TOPOLOGIA", mtype='chat')
+                              mbody=f"SOLICITUD_TOPOLOGIA:{string_json}",
+                              mtype='chat')
  
     # FUNCION QUE CORRE TODO
 
@@ -297,11 +324,11 @@ class Cliente(slixmpp.ClientXMPP):
 
             myRoster = list(self.client_roster.keys())
 
-            self.link_state.sincronizar_roster({self.name: myRoster})
+            self.linkstate.sincronizar_roster({self.name: myRoster})
 
             self.is_connected = True
             print('Logged in')
-            await self.descubrir_topologia()
+
             asyncio.create_task(self.instancia_usuario())
 
         # errores en log in
@@ -324,26 +351,29 @@ class Cliente(slixmpp.ClientXMPP):
                 # todos los contactios con estado
                 if opcion == "1":
                     await self.mostrar_status_contacto()
+                
+                elif opcion == "2":
+                    await self.descubrir_topologia()
 
                 # agregar un nuevo usuario
-                elif opcion == "2":
+                elif opcion == "3":
                     await self.anadir_contacto()
 
                 # detalles de un usuario
-                elif opcion == "3":
+                elif opcion == "4":
                     await self.mostrar_detalles_vecinos(self.distance_vector)
 
                 # chatear con usuario
-                elif opcion == "4":
+                elif opcion == "5":
                     await self.enviar_mensaje_contacto()
 
                 # cerrar sesion
-                elif opcion == "5":
+                elif opcion == "6":
                     self.disconnect()
                     self.is_connected = False
 
                 # mensaje para todos
-                elif opcion == "6":
+                elif opcion == "7":
                     mensaje = str(self.distance_vector.node_name) + ":" + \
                         ",".join(self.distance_vector.neighbor_costs.keys())
                     await self.enviar_mensaje_broadcast(mensaje)
