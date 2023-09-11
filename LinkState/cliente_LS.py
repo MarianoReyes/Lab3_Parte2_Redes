@@ -1,3 +1,4 @@
+import copy
 import menus
 import json
 import xmpp
@@ -28,7 +29,8 @@ class Cliente(slixmpp.ClientXMPP):
 
         super().__init__(jid, password)
         
-        self.name = jid.split('@')[0]
+        # self.name = jid.split('@')[0]
+        self.name = self.boundjid.bare.lower()
         self.linkstate = LinkState(self.name, {self.name: []})
         self.is_connected = False
         self.actual_chat = ''
@@ -94,6 +96,7 @@ class Cliente(slixmpp.ClientXMPP):
             mensaje = message["body"]
 
             if mensaje.startswith("SOLICITUD_TOPOLOGIA:"):
+                print("Solicitud de topología recibida")
                 # Deserializar el JSON recibido para obtener
                 # el diccionario de topología del vecino
                 topologia_vecino = json.loads(
@@ -104,7 +107,7 @@ class Cliente(slixmpp.ClientXMPP):
                 
                 # Crear una copia profunda de la topología actual
                 # para comparar después del merge
-                mi_topologia_original = json.dumps(mi_topologia)
+                mi_topologia_original = copy.deepcopy(mi_topologia)
                 
                 for nodo, vecinos in topologia_vecino.items():
                     if nodo not in mi_topologia:
@@ -115,22 +118,10 @@ class Cliente(slixmpp.ClientXMPP):
                                 mi_topologia[nodo].append(vecino)
                 
                 # Verificar si hubo algún cambio
-                if json.dumps(mi_topologia) != mi_topologia_original:
+                if mi_topologia != mi_topologia_original:
                     # Si hubo cambios, enviar la topología actualizada
                     self.linkstate.sincronizar_roster(mi_topologia)
                     # a todos los vecinos
-                    await self.descubrir_topologia()
-
-            elif mensaje.startswith("RESPUESTA_TOPOLOGIA"):
-                # Aquí puedes manejar las respuestas a
-                # tus solicitudes de topología
-                topologia_recibida = json.loads(
-                    mensaje[len("RESPUESTA_TOPOLOGIA:"):])
-
-                # Compara y actualiza tu topología si es necesario,
-                # similar al caso anterior
-                if topologia_recibida != self.linkstate.topologia:
-                    self.linkstate.topologia.update(topologia_recibida)
                     await self.descubrir_topologia()
 
             try:
@@ -210,8 +201,8 @@ class Cliente(slixmpp.ClientXMPP):
 
     async def anadir_contacto(self):  # funcion para anadir contacto
         jid_to_add = input(
-            "Ingresa el JID del usuario que deseas agregar",
-            " (Ejemplo: usuario@servidor.com): ")
+            """Ingresa el JID del usuario que deseas agregar
+             (Ejemplo: usuario@servidor.com): """)
         try:
             self.send_presence_subscription(pto=jid_to_add)
             print(f"Solicitud de suscripción enviada a {jid_to_add}")
@@ -310,10 +301,12 @@ class Cliente(slixmpp.ClientXMPP):
     async def descubrir_topologia(self):
         mi_topologia = self.linkstate.topologia
         string_json = json.dumps(mi_topologia)
-        for vecino in self.linkstate.roster[self.name]:
-            self.send_message(mto=vecino,
-                              mbody=f"SOLICITUD_TOPOLOGIA:{string_json}",
-                              mtype='chat')
+        for vecino in self.linkstate.vecinos:
+            if vecino != self.name:
+                
+                self.send_message(mto=vecino,
+                                  mbody=f"SOLICITUD_TOPOLOGIA:{string_json}",
+                                  mtype='chat')
  
     # FUNCION QUE CORRE TODO
 
@@ -357,11 +350,12 @@ class Cliente(slixmpp.ClientXMPP):
 
                 # agregar un nuevo usuario
                 elif opcion == "3":
+
                     await self.anadir_contacto()
 
                 # detalles de un usuario
                 elif opcion == "4":
-                    await self.mostrar_detalles_vecinos(self.distance_vector)
+                    await self.mostrar_detalles_vecinos(self.linkstate)
 
                 # chatear con usuario
                 elif opcion == "5":
@@ -374,8 +368,8 @@ class Cliente(slixmpp.ClientXMPP):
 
                 # mensaje para todos
                 elif opcion == "7":
-                    mensaje = str(self.distance_vector.node_name) + ":" + \
-                        ",".join(self.distance_vector.neighbor_costs.keys())
+                    mensaje = str(self.distance_vector.node_name) + ":"
+                    + ",".join(self.distance_vector.neighbor_costs.keys())
                     await self.enviar_mensaje_broadcast(mensaje)
 
                 else:
@@ -414,4 +408,3 @@ class Borrar_Cliente(slixmpp.ClientXMPP):  # funcion para borrar un cliente
             self.disconnect()
 
         self.disconnect()
-

@@ -1,18 +1,16 @@
 import heapq
 
-
 class LinkState():
     def __init__(self, nombre, roster):
-        self.nombre = nombre
-
-        self.vecinos_pesos = [(v, 1) for v in roster[self.nombre]]
-        print(f"Estos son los vecinos de {self.nombre}: ", self.vecinos_pesos)
+        self.nombre = nombre.lower()
+        self.roster = roster
+        self.vecinos = roster[self.nombre]
+        print(f"Estos son los vecinos de {self.nombre}: ", self.vecinos)
         
-        self.topologia = {self.nombre: self.vecinos_pesos}
+        self.topologia = {self.nombre: self.vecinos}
         for vecino, vecinos_vecino in roster.items():
             if vecino != self.nombre:
-                vecinos_con_pesos = [(v, 1) for v in vecinos_vecino]
-                self.topologia[vecino] = vecinos_con_pesos
+                self.topologia[vecino] = vecinos_vecino
         self.dijkstra()
 
     def dijkstra(self):
@@ -28,8 +26,8 @@ class LinkState():
             if current_dist > self.distancias[u]:
                 continue
 
-            for v, peso in self.topologia.get(u, []):
-                alt = self.distancias[u] + peso
+            for v in self.topologia.get(u, []):
+                alt = self.distancias[u] + 1  # El peso es siempre 1
                 if alt < self.distancias.get(v, float("inf")):
                     self.distancias[v] = alt
                     self.anterior[v] = u
@@ -66,24 +64,24 @@ class LinkState():
             return next
 
     def sincronizar_roster(self, roster):
-        self.vecinos_pesos = [(vecino, 1) for vecino in roster[self.nombre]]
-        self.topologia[self.nombre] = self.vecinos_pesos
+        self.roster = roster
+        self.vecinos = roster[self.nombre]
+        self.topologia[self.nombre] = self.vecinos
         
         for vecino, vecinos_vecino in roster.items():
             if vecino != self.nombre:
-                vecinos_con_pesos = [(v, 1) for v in vecinos_vecino]
-                self.topologia[vecino] = vecinos_con_pesos
+                self.topologia[vecino] = vecinos_vecino
         self.dijkstra()
 
 
-# if __name__ == "__main__":
-#     nuevoLink = Link_State("A", {self.nombre: ["B"]})
-#     vecinosB = ["C"]
-#     vecinosC = ["A"]
-#     print(nuevoLink.tabla_enrutamiento)
-#     nuevoLink.sincronizar_roster(
-#       {self.nombre: vecinosB, "B": vecinosB, "C": vecinosC})
-
-#     print(nuevoLink.siguiente_nodo("B"))
-#     print(nuevoLink.siguiente_nodo("C"))
-#     print(nuevoLink.recibir_mensaje("A", "C", "Hola"))
+# A continuación, el código para probar la clase
+if __name__ == "__main__":
+    nuevoLink = LinkState("A", {"A": ["B"]})
+    vecinosB = ["A", "C"]
+    vecinosC = ["B"]
+    print(nuevoLink.topologia)
+    nuevoLink.sincronizar_roster({"A": ["B"], "B": vecinosB, "C": vecinosC})
+    print("TABLA ", nuevoLink.topologia)
+    print(nuevoLink.siguiente_nodo("B"))
+    print(nuevoLink.siguiente_nodo("C"))
+    print(nuevoLink.recibir_mensaje("A", "C", "Hola"))
