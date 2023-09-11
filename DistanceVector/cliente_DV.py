@@ -100,7 +100,7 @@ class Cliente(slixmpp.ClientXMPP):
 
             mensaje = message["body"]
 
-            try:
+            if mensaje[1] == ":":
                 neighbors_info = mensaje[2:]
                 neighbors = neighbors_info.split(',')
                 neighbors = [x.upper() for x in neighbors]
@@ -117,18 +117,43 @@ class Cliente(slixmpp.ClientXMPP):
                         f"Tienes una comunicación de {node}>> {mensaje}")
                     self.distance_vector.update(
                         neighbors, mensaje.split(":")[0])
-            except:
+            elif mensaje[0] == "%":
+                mensaje = mensaje[1:]
+                message_dv = mensaje.split(" /")[0]
+                sender = mensaje.split(" >> ")[1]
+                receiver = mensaje.split(" >> ")[2]
+
+                receiver = receiver.lower() + "_g9@alumchat.xyz"
+                message_dv = message_dv + " | de: " + sender
+
+                # si el mensaje es con el que chatea
+                if user == self.actual_chat.split('@')[0]:
+                    print_azul(f'{user}: {message["body"]}')
+                    self.send_message(
+                        mto=receiver, mbody=message_dv, mtype='chat')
+                # notificacion si es otro
+                else:
+                    self.mostrar_notificacion_verde(
+                        f"Tienes una comunicación de {node}>> {mensaje}")
+                    self.send_message(
+                        mto=receiver, mbody=message_dv, mtype='chat')
+
+            else:
                 # si el mensaje es con el que chatea
                 if user == self.actual_chat.split('@')[0]:
                     print_azul(f'{user}: {message["body"]}')
                 # notificacion si es otro
                 else:
-                    self.mostrar_notificacion(
+                    self.mostrar_notificacion_verde(
                         f"Tienes una comunicación de {node}>> {mensaje}")
 
-    # funcion generada por chat gpt para imprimir con colores
+                    # funcion generada por chat gpt para imprimir con colores
     def mostrar_notificacion(self, mensaje):
         print_rojo(mensaje)
+        print("v")
+
+    def mostrar_notificacion_verde(self, mensaje):
+        print_verde(mensaje)
         print("v")
 
     async def enviar_mensaje_broadcast(client, message_body):
@@ -254,11 +279,18 @@ class Cliente(slixmpp.ClientXMPP):
             print("No hay vecinos disponibles.")
 
     async def enviar_mensaje_contacto(self):  # enviar mensaje a algun contacto
-
-        reciever = await ainput('Ingresa el Nodo destino\n>> ')
+        receiver = await ainput('Ingresa el Nodo destino\n')
         mensaje = await ainput('Ingresa el Mensaje\n>> ')
-        self.distance_vector.receive_message(
-            self.distance_vector.node_name, reciever, mensaje)
+
+        if receiver.upper() in self.distance_vector.neighbor_costs:  # si el mensaje va a un vecino
+            jid = receiver.lower() + "_g9@alumchat.xyz"
+            self.send_message(mto=jid, mbody=mensaje, mtype='chat')
+        else:  # si el mensaje va a narnia
+            intermediario = self.distance_vector.next_hops[receiver]
+            jid = intermediario.lower() + "_g9@alumchat.xyz"
+            mensaje = "%" + mensaje + " / >> " + \
+                self.distance_vector.node_name + " >> " + receiver
+            self.send_message(mto=jid, mbody=mensaje, mtype='chat')
 
     # FUNCION QUE CORRE TODO
 
@@ -291,7 +323,7 @@ class Cliente(slixmpp.ClientXMPP):
 
                 # todos los contactios con estado
                 if opcion == "1":
-                    await self.mostrar_status_contacto()
+                    await self.add_neighbors()
 
                 # agregar un nuevo usuario
                 elif opcion == "2":
@@ -309,22 +341,21 @@ class Cliente(slixmpp.ClientXMPP):
                 elif opcion == "5":
                     await self.enviar_mensaje_contacto()
 
-                # cerrar sesion
-                elif opcion == "6":
-                    self.disconnect()
-                    self.is_connected = False
-
                 # mensaje para todos
-                elif opcion == "7":
-                    await self.add_neighbors()
+                elif opcion == "6":
                     mensaje = str(self.distance_vector.node_name) + ":" + \
                         ",".join(self.distance_vector.neighbor_costs.keys())
                     await self.enviar_mensaje_broadcast(mensaje)
 
                 # mensaje para todos
-                elif opcion == "8":
+                elif opcion == "7":
                     # Llamar a la función para mostrar la tabla de enrutamiento
                     await self.mostrar_routing_table(self.distance_vector)
+
+                # cerrar sesion
+                elif opcion == "8":
+                    self.disconnect()
+                    self.is_connected = False
 
                 else:
                     print("\nOpción NO válida, ingrese de nuevo porfavor.")

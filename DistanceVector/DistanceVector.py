@@ -25,7 +25,7 @@ class DistanceVector:
     def update(self, neighbors, sending_node_name):
         for neighbor in neighbors:
             if neighbor != self.node_name:
-                if neighbor not in self.neighbor_costs and sending_node_name in self.neighbor_costs:
+                if neighbor not in self.neighbor_costs and sending_node_name in self.neighbor_costs and self.routing_table[neighbor] == float('inf'):
                     actual_cost = self.routing_table.get(
                         neighbor, float('inf'))
                     new_cost = self.routing_table[sending_node_name] + 1
@@ -39,7 +39,7 @@ class DistanceVector:
         else:
             next_hop = self.next_hops[receiver]
             print(
-                f"Reenviar mensaje de {sender} a {receiver} a través de {next_hop}")
+                f"Reenviar >> {message} >> de: {sender} -> {receiver} a través de {next_hop}")
 
     def is_converged(self):
         # Verificar si la tabla de enrutamiento ha convergido
