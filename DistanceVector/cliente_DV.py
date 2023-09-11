@@ -101,20 +101,22 @@ class Cliente(slixmpp.ClientXMPP):
             mensaje = message["body"]
 
             try:
-                neighbors = mensaje.split(':')[1].split(',')
+                neighbors_info = mensaje[2:]
+                neighbors = neighbors_info.split(',')
+                neighbors = [x.upper() for x in neighbors]
 
                 # si el mensaje es con el que chatea
                 if user == self.actual_chat.split('@')[0]:
                     print_azul(f'{user}: {message["body"]}')
-                    self.distance_vector.update(neighbors)
-                    print(self.distance_vector.routing_table)
+                    self.distance_vector.update(
+                        neighbors, mensaje.split(":")[0])
 
                 # notificacion si es otro
                 else:
-                    self.distance_vector.update(neighbors)
                     self.mostrar_notificacion(
                         f"Tienes una comunicación de {node}>> {mensaje}")
-                    print(self.distance_vector.routing_table)
+                    self.distance_vector.update(
+                        neighbors, mensaje.split(":")[0])
             except:
                 # si el mensaje es con el que chatea
                 if user == self.actual_chat.split('@')[0]:
@@ -141,35 +143,9 @@ class Cliente(slixmpp.ClientXMPP):
                     client.send_message(
                         mto=jid, mbody=message_body, mtype='chat')
 
-            print("Message sent to all contacts except yourself.")
+            print("Mensaje enviado a todos.")
         except Exception as e:
             print("Error sending message:", e)
-
-    def mostrar_presencia(self, presence, is_available):
-
-        # verficaciones previas
-        if str(presence['from']).split("/")[0] != self.boundjid.bare and "conference" not in str(presence['from']):
-
-            # estado del usaurio
-            if is_available:
-                show = 'available'
-            elif is_available == False:
-                show = 'offline'
-            else:
-                show = presence['show']
-
-            # obtener mensaje de usaurio
-            user = (str(presence['from']).split('/')[0])
-            # presencia de contactos
-            status = presence['status']
-
-            if status != '':
-                notification_message = f'{user} esta {show} - {status}'
-            else:
-                notification_message = f'{user} esta {show}'
-
-            # se muestra la notificacion
-            self.mostrar_notificacion(notification_message)
 
     async def anadir_contacto(self):  # funcion para anadir contacto
         jid_to_add = input(
@@ -238,17 +214,33 @@ class Cliente(slixmpp.ClientXMPP):
                 # Check if the contact JID matches the pattern 'x_g9@alumchat.xyz'
                 if re.match(r'^[a-zA-Z0-9]+_g9@alumchat\.xyz$', jid):
                     # Extract the 'x' value by splitting on '_' and taking the first part
-                    node_name = jid.split('_')[0]
+                    node_name = jid.split('_')[0].upper()
 
                     node = jid.split('@')[0]
 
                     if node != self.name:
                         # Add the 'x' value to the neighbor_costs dictionary with a value of 1
                         self.distance_vector.neighbor_costs[node_name] = 1
+                    else:
+                        self.distance_vector.neighbor_costs[node_name] = 0
 
             print("Vecinos linkeados.")
+
+            topology_nodes = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+
+            self.distance_vector.set_routing_table(topology_nodes)
+
         except Exception as e:
             print("Error al linkear con vecinos:", e)
+
+    async def mostrar_routing_table(self, distance_vector):
+        print("Tabla de enrutamiento:")
+        print(distance_vector.routing_table)
+        for destino, costo in distance_vector.routing_table.items():
+            if destino != distance_vector.node_name:
+                next_hop = distance_vector.next_hops.get(destino, "-")
+                print(
+                    f"Destino: {destino}, Costo: {costo}, Próximo salto: {next_hop}")
 
     async def mostrar_detalles_vecinos(self, distance_vector):
         vecinos = distance_vector.neighbor_costs
@@ -263,17 +255,10 @@ class Cliente(slixmpp.ClientXMPP):
 
     async def enviar_mensaje_contacto(self):  # enviar mensaje a algun contacto
 
-        jid = await ainput('Ingrasa el JID del usuario\n')
-        self.actual_chat = jid
-        await aprint('\nPresiona x y luego enter para salir\n')
-        chatting = True
-        while chatting:
-            message = await ainput('')
-            if message == 'x':
-                chatting = False
-                self.actual_chat = ''
-            else:
-                self.send_message(mto=jid, mbody=message, mtype='chat')
+        reciever = await ainput('Ingresa el Nodo destino\n>> ')
+        mensaje = await ainput('Ingresa el Mensaje\n>> ')
+        self.distance_vector.receive_message(
+            self.distance_vector.node_name, reciever, mensaje)
 
     # FUNCION QUE CORRE TODO
 
@@ -299,6 +284,7 @@ class Cliente(slixmpp.ClientXMPP):
     async def instancia_usuario(self):  # funcion para menu de user
         try:
             await self.add_neighbors()
+
             while self.is_connected:
                 menus.user_menu()  # menu de cliente
                 opcion = await ainput("\n>> ")
@@ -330,9 +316,15 @@ class Cliente(slixmpp.ClientXMPP):
 
                 # mensaje para todos
                 elif opcion == "7":
+                    await self.add_neighbors()
                     mensaje = str(self.distance_vector.node_name) + ":" + \
                         ",".join(self.distance_vector.neighbor_costs.keys())
                     await self.enviar_mensaje_broadcast(mensaje)
+
+                # mensaje para todos
+                elif opcion == "8":
+                    # Llamar a la función para mostrar la tabla de enrutamiento
+                    await self.mostrar_routing_table(self.distance_vector)
 
                 else:
                     print("\nOpción NO válida, ingrese de nuevo porfavor.")

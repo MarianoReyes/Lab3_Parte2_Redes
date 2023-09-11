@@ -7,21 +7,30 @@ class DistanceVector:
         self.next_hops = {}
         self.converged = False
 
-    def set_neighbor_costs(self, neighbors):
-        # Establecer costos de vecinos y asignarles un peso de 1
-        for neighbor in neighbors:
-            self.neighbor_costs[neighbor] = 1
-
-    def update(self, neighbors):
-        # Actualizar la tabla de enrutamiento utilizando el algoritmo de vector de distancia
-        for node in neighbors:
+    def set_routing_table(self, topology_nodes):
+        # Inicializa la tabla de enrutamiento
+        for node in topology_nodes:
             if node != self.node_name:
-                min_cost = min(
-                    [self.neighbor_costs[n] + self.routing_table[n] for n in neighbors])
-                if min_cost < self.routing_table[node]:
-                    self.routing_table[node] = min_cost
-                    self.next_hops[node] = [
-                        n for n in neighbors if self.routing_table[node] == self.neighbor_costs[n]][0]
+                if node in self.neighbor_costs:
+                    # Si es un vecino, usa el costo proporcionado en neighbor_costs
+                    self.routing_table[node] = self.neighbor_costs[node]
+                    self.next_hops[node] = node
+                else:
+                    # Si no es un vecino, establece el costo a infinito
+                    self.routing_table[node] = float('inf')
+                    self.next_hops[node] = None
+            else:
+                self.routing_table[node] = 0
+
+    def update(self, neighbors, sending_node_name):
+        for neighbor in neighbors:
+            if neighbor != self.node_name:
+                if neighbor not in self.neighbor_costs and sending_node_name in self.neighbor_costs:
+                    actual_cost = self.routing_table.get(
+                        neighbor, float('inf'))
+                    new_cost = self.routing_table[sending_node_name] + 1
+                    self.routing_table[neighbor] = min(actual_cost, new_cost)
+                    self.next_hops[neighbor] = sending_node_name
 
     def receive_message(self, sender, receiver, message):
         # Simular la recepción de un mensaje
