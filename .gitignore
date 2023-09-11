@@ -1,2 +1,6 @@
 myenv
 newenv
+LinkState/__pycache__
+DistanceVector/__pycache__
+Flooding/__pycache__
+__pycache__
