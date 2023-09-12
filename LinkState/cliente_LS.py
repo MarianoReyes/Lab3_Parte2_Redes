@@ -6,7 +6,7 @@ import slixmpp
 import asyncio
 from aioconsole import ainput
 from aioconsole.stream import aprint
-from utils import print_azul, print_rojo
+from utils import print_rojo
 from LinkState import LinkState
 from slixmpp.xmlstream.stanzabase import ET
 from slixmpp.exceptions import IqError, IqTimeout
@@ -91,8 +91,7 @@ class Cliente(slixmpp.ClientXMPP):
         # chat normal
         if message['type'] == 'chat':
             # solo user
-            user = str(message['from']).split('@')[0]
-            node = user.split("_")[0].upper()
+            user = str(message['from'])
             mensaje = message["body"]
 
             if mensaje.startswith("SOLICITUD_TOPOLOGIA:"):
@@ -123,30 +122,34 @@ class Cliente(slixmpp.ClientXMPP):
                     self.linkstate.sincronizar_roster(mi_topologia)
                     # a todos los vecinos
                     await self.descubrir_topologia()
+                else:
+                    # Solo responder mi topologia actual
+                    string_json = json.dumps(mi_topologia)
+                    self.send_message(mto=user,
+                                      mbody=f"TOPOLOGIA:{string_json}",
+                                      mtype='chat')
+                return
+                    
+            elif mensaje.startswith("TOPOLOGIA:"):
+                # obtener la topología del vecino
+                topologia_vecino = json.loads(
+                    mensaje[len("TOPOLOGIA:"):])
+                
+                self.linkstate.sincronizar_roster(topologia_vecino)
+                return
 
             try:
-                neighbors = mensaje.split(':')[1].split(',')
-
-                # si el mensaje es con el que chatea
-                if user == self.actual_chat.split('@')[0]:
-                    print_azul(f'{user}: {message["body"]}')
-                    self.distance_vector.update(neighbors)
-                    print(self.distance_vector.routing_table)
-
-                # notificacion si es otro
-                else:
-                    self.distance_vector.update(neighbors)
-                    self.mostrar_notificacion(
-                        f"Tienes una comunicación de {node}>> {mensaje}")
-                    print(self.distance_vector.routing_table)
-            except IndexError:
-                # si el mensaje es con el que chatea
-                if user == self.actual_chat.split('@')[0]:
-                    print_azul(f'{user}: {message["body"]}')
-                # notificacion si es otro
-                else:
-                    self.mostrar_notificacion(
-                        f"Tienes una comunicación de {node}>> {mensaje}")
+                if mensaje.startswith("NODE:"):
+                    mensaje = mensaje[len("NODE:"):]
+                    nodo, receptor, mensaje = mensaje.split(",", 2)
+                    siguiente_nodo = self.linkstate.recibir_mensaje(
+                        nodo, receptor, mensaje)
+                    if siguiente_nodo is not None:
+                        sms = f"NODE:{nodo},{receptor},{mensaje}"
+                        self.send_message(mto=siguiente_nodo,
+                                          mbody=sms,
+                                          mtype='chat')
+                    return
             except Exception as e:
                 print("An error occurred:", e)
 
@@ -273,14 +276,18 @@ class Cliente(slixmpp.ClientXMPP):
         print(f"Mensaje de estado/status: {status}")
         print("")
 
-    async def mostrar_detalles_vecinos(self, distance_vector):
-        vecinos = distance_vector.neighbor_costs
+    async def mostrar_detalles_vecinos(self, Link):
+        vecinos = Link.vecinos
 
         if vecinos:
-            print("Vecinos:")
+            print("=======Mis Vecino:=========")
             for vecino in vecinos:
-                peso = distance_vector.neighbor_costs[vecino]
-                print(f"{vecino}: Peso = {peso}")
+                print(f"{Link.nombre}=={1}==>{vecino}")
+            
+            print("\n\n===========Topología:=========\n")
+            for nodo, vecinos in Link.topologia.items():
+                if nodo != Link.nombre:
+                    print(f"{nodo}=={1}==>{vecinos}\n")
         else:
             print("No hay vecinos disponibles.")
 
@@ -296,7 +303,11 @@ class Cliente(slixmpp.ClientXMPP):
                 chatting = False
                 self.actual_chat = ''
             else:
-                self.send_message(mto=jid, mbody=message, mtype='chat')
+                siguiente_nodo = self.linkstate.siguiente_nodo(jid.lower())
+                smsFinal = "NODE:" + str(self.linkstate.nombre)\
+                    + "," + self.actual_chat + "," + message
+                self.send_message(mto=siguiente_nodo,
+                                  mbody=smsFinal, mtype='chat')
 
     async def descubrir_topologia(self):
         mi_topologia = self.linkstate.topologia

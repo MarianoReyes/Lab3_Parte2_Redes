@@ -1,4 +1,6 @@
 import heapq
+from utils import print_azul, print_amarillo, print_rojo
+
 
 class LinkState():
     def __init__(self, nombre, roster):
@@ -54,13 +56,13 @@ class LinkState():
 
     def recibir_mensaje(self, emisor, receptor, mensaje):
         if self.nombre == receptor:
-            print("Mensaje recibido: ", mensaje)
+            print_azul(f"Mensaje recibido: {mensaje}")
             return None
         else:
-            print("De: ", emisor)
-            print("Manda:", mensaje)
+            print_amarillo(f"De: {emisor}, Para: {receptor}")
+            print_amarillo(f"Manda: {mensaje}")
             next = self.siguiente_nodo(receptor)
-            print("El siguiente nodo en el camino es:", next)
+            print_rojo(f"El siguiente nodo en el camino es: {next}")
             return next
 
     def sincronizar_roster(self, roster):
@@ -74,14 +76,14 @@ class LinkState():
         self.dijkstra()
 
 
-# A continuación, el código para probar la clase
-if __name__ == "__main__":
-    nuevoLink = LinkState("A", {"A": ["B"]})
-    vecinosB = ["A", "C"]
-    vecinosC = ["B"]
-    print(nuevoLink.topologia)
-    nuevoLink.sincronizar_roster({"A": ["B"], "B": vecinosB, "C": vecinosC})
-    print("TABLA ", nuevoLink.topologia)
-    print(nuevoLink.siguiente_nodo("B"))
-    print(nuevoLink.siguiente_nodo("C"))
-    print(nuevoLink.recibir_mensaje("A", "C", "Hola"))
+# # A continuación, el código para probar la clase
+# if __name__ == "__main__":
+#     nuevoLink = LinkState("A", {"A": ["B"]})
+#     vecinosB = ["A", "C"]
+#     vecinosC = ["B"]
+#     print(nuevoLink.topologia)
+#     nuevoLink.sincronizar_roster({"A": ["B"], "B": vecinosB, "C": vecinosC})
+#     print("TABLA ", nuevoLink.topologia)
+#     print(nuevoLink.siguiente_nodo("B"))
+#     print(nuevoLink.siguiente_nodo("C"))
+#     print(nuevoLink.recibir_mensaje("A", "C", "Hola"))
