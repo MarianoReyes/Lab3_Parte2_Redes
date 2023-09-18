@@ -8,6 +8,13 @@ Es necesario instalar las diferentes librerias para poder correr el programa. La
 `pip install aiohttp`
 `pip install cython`
 
+o Si quieres instalar todo de un solo 
+
+`pip install -r requirements.txt`
+
+## Ejecución
+
+Dentro de cada Algoritmo esta su forma de ejecución
 
 ## Contraseñas de users
 
